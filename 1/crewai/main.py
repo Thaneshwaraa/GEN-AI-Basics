@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+import sys
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from crewai import Agent, Task, Crew, LLM
 
+# Requires Ollama running locally with the model pulled:  ollama pull llama3.2
 llm = LLM(model="ollama/llama3.2", base_url="http://localhost:11434")
 
 researcher = Agent(
@@ -30,5 +32,9 @@ def chat(req: PromptRequest):
                  expected_output="One short paragraph", agent=writer)
 
     crew = Crew(agents=[researcher, writer], tasks=[research, write])
-    result = crew.kickoff()
+    try:
+        result = crew.kickoff()
+    except ConnectionError:
+        raise HTTPException(503, "Can't reach Ollama at http://localhost:11434. "
+                                 "Start Ollama and run: ollama pull llama3.2")
     return {"response": str(result)}
