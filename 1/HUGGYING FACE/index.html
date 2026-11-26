@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple Chat</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+    #chat { border: 1px solid #ccc; border-radius: 8px; padding: 12px; height: 360px; overflow-y: auto; margin-bottom: 12px; }
+    .msg { margin: 8px 0; padding: 8px 12px; border-radius: 8px; white-space: pre-wrap; }
+    .user { background: #dbeafe; text-align: right; }
+    .bot { background: #f3f4f6; }
+    form { display: flex; gap: 8px; }
+    input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+    button { padding: 10px 16px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; }
+  </style>
+</head>
+<body>
+  <h2>Simple Chat</h2>
+  <div id="chat"></div>
+  <form id="form">
+    <input id="prompt" placeholder="Type a prompt..." autocomplete="off" required>
+    <button id="send">Send</button>
+  </form>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("form");
+    const input = document.getElementById("prompt");
+    const send = document.getElementById("send");
+
+    function add(text, cls) {
+      const div = document.createElement("div");
+      div.className = "msg " + cls;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const prompt = input.value.trim();
+      if (!prompt) return;
+      add(prompt, "user");
+      input.value = "";
+      send.disabled = true;
+      const bot = add("Thinking...", "bot");
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
+        if (!res.ok) throw new Error("Server error " + res.status);
+        const data = await res.json();
+        bot.textContent = data.response;
+      } catch (err) {
+        bot.textContent = "Error: " + err.message;
+      } finally {
+        send.disabled = false;
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>
